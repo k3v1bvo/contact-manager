@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Grupo - Contact Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Contact Manager</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/persons.html">Personas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/groups.html">Grupos</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h2 id="form-title">Nuevo Grupo</h2>
+        <form id="group-form">
+            <input type="hidden" id="code">
+            <div class="mb-3">
+                <label for="group_name" class="form-label">Nombre del grupo *</label>
+                <input type="text" class="form-control" id="group_name" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="esta_activo" checked>
+                <label class="form-check-label" for="esta_activo">Activo</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="/groups.html" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code) {
+            document.getElementById('form-title').textContent = 'Editar Grupo';
+            document.getElementById('code').value = code;
+            fetch(`/api/groups/${code}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('group_name').value = data.group_name;
+                    document.getElementById('esta_activo').checked = data.esta_activo;
+                });
+        }
+        document.getElementById('group-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                group_name: document.getElementById('group_name').value,
+                esta_activo: document.getElementById('esta_activo').checked
+            };
+            let url = '/api/groups';
+            let method = 'POST';
+            if (code) {
+                url = `/api/groups/${code}`;
+                method = 'PUT';
+            }
+            const resp = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (resp.ok) {
+                window.location.href = '/groups.html';
+            } else {
+                alert('Error al guardar');
+            }
+        });
+    </script>
+</body>
+</html>

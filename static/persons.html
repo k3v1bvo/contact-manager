@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personas - Contact Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Contact Manager</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link active" href="/persons.html">Personas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/groups.html">Grupos</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h2>Lista de Personas</h2>
+        <button class="btn btn-success mb-3" onclick="location.href='/person-form.html?new=true'">Nueva Persona</button>
+        <table class="table table-striped" id="persons-table">
+            <thead>
+                <tr><th>Código</th><th>Nombres</th><th>Apellidos</th><th>Email</th><th>Celular</th><th>Grupo</th><th>Foto</th><th>Acciones</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function loadPersons() {
+            const resp = await fetch('/api/persons');
+            const persons = await resp.json();
+            const tbody = document.querySelector('#persons-table tbody');
+            tbody.innerHTML = '';
+            persons.forEach(p => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = p.code.slice(0,8)+'...';
+                row.insertCell(1).textContent = p.names;
+                row.insertCell(2).textContent = p.last_names;
+                row.insertCell(3).textContent = p.email;
+                row.insertCell(4).textContent = p.cellphone;
+                row.insertCell(5).textContent = p.group_name; // nombre del grupo
+                const imgCell = row.insertCell(6);
+                if (p.photograph) {
+                    const img = document.createElement('img');
+                    img.src = p.photograph;
+                    img.style.width = '50px';
+                    img.style.height = '50px';
+                    img.style.objectFit = 'cover';
+                    imgCell.appendChild(img);
+                } else {
+                    imgCell.textContent = 'Sin foto';
+                }
+                const actions = row.insertCell(7);
+                actions.innerHTML = `<button class="btn btn-sm btn-warning" onclick="location.href='/person-form.html?code=${p.code}'">Editar</button>
+                                     <button class="btn btn-sm btn-danger" onclick="deletePerson('${p.code}')">Eliminar</button>`;
+            });
+        }
+        async function deletePerson(code) {
+            if (confirm('¿Eliminar esta persona?')) {
+                await fetch(`/api/persons/${code}`, { method: 'DELETE' });
+                loadPersons();
+            }
+        }
+        loadPersons();
+    </script>
+</body>
+</html>

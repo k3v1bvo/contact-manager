@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Persona - Contact Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Contact Manager</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/persons.html">Personas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/groups.html">Grupos</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h2 id="form-title">Nueva Persona</h2>
+        <form id="person-form">
+            <input type="hidden" id="code">
+            <div class="mb-3">
+                <label for="names" class="form-label">Nombres *</label>
+                <input type="text" class="form-control" id="names" required>
+            </div>
+            <div class="mb-3">
+                <label for="last_names" class="form-label">Apellidos *</label>
+                <input type="text" class="form-control" id="last_names" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="cellphone" class="form-label">Celular</label>
+                <input type="text" class="form-control" id="cellphone">
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Dirección</label>
+                <textarea class="form-control" id="address" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="observations" class="form-label">Observaciones</label>
+                <textarea class="form-control" id="observations" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="group_id" class="form-label">Grupo *</label>
+                <select id="group_id" class="form-select" required></select>
+            </div>
+            <div class="mb-3">
+                <label for="photograph" class="form-label">Fotografía</label>
+                <input type="file" class="form-control" id="photograph" accept="image/*">
+                <img id="photo-preview" style="max-width: 150px; margin-top: 5px; display: none;">
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="esta_activo" checked>
+                <label class="form-check-label" for="esta_activo">Activo</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="/persons.html" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        let groups = [];
+
+        if (code) {
+            document.getElementById('form-title').textContent = 'Editar Persona';
+            document.getElementById('code').value = code;
+        }
+
+        async function loadGroups() {
+            const resp = await fetch('/api/groups');
+            groups = await resp.json();
+            const select = document.getElementById('group_id');
+            select.innerHTML = '';
+            groups.forEach(g => {
+                const option = document.createElement('option');
+                option.value = g.code;
+                option.textContent = g.group_name;
+                select.appendChild(option);
+            });
+            if (code) {
+                const personResp = await fetch(`/api/persons/${code}`);
+                const person = await personResp.json();
+                document.getElementById('names').value = person.names;
+                document.getElementById('last_names').value = person.last_names;
+                document.getElementById('email').value = person.email;
+                document.getElementById('cellphone').value = person.cellphone;
+                document.getElementById('address').value = person.address;
+                document.getElementById('observations').value = person.observations;
+                document.getElementById('esta_activo').checked = person.esta_activo;
+                if (person.group_id) select.value = person.group_id;
+                if (person.photograph) {
+                    const img = document.getElementById('photo-preview');
+                    img.src = person.photograph;
+                    img.style.display = 'block';
+                }
+            }
+        }
+
+        document.getElementById('photograph').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const img = document.getElementById('photo-preview');
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('person-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const photoInput = document.getElementById('photograph');
+            let photograph = '';
+            if (photoInput.files.length > 0) {
+                const file = photoInput.files[0];
+                photograph = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = ev => resolve(ev.target.result);
+                    reader.readAsDataURL(file);
+                });
+            } else if (code && document.getElementById('photo-preview').src) {
+                photograph = document.getElementById('photo-preview').src;
+            }
+            const data = {
+                names: document.getElementById('names').value,
+                last_names: document.getElementById('last_names').value,
+                email: document.getElementById('email').value,
+                cellphone: document.getElementById('cellphone').value,
+                address: document.getElementById('address').value,
+                observations: document.getElementById('observations').value,
+                group_id: document.getElementById('group_id').value,
+                photograph: photograph,
+                esta_activo: document.getElementById('esta_activo').checked
+            };
+            let url = '/api/persons';
+            let method = 'POST';
+            if (code) {
+                url = `/api/persons/${code}`;
+                method = 'PUT';
+            }
+            const resp = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (resp.ok) {
+                window.location.href = '/persons.html';
+            } else {
+                alert('Error al guardar');
+            }
+        });
+        loadGroups();
+    </script>
+</body>
+</html>
